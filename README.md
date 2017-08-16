@@ -16,8 +16,12 @@ Write data to a redis server.
            | Redis port
         - database(int)(0)
            | Index of db to use
-        - key(str)("queue")
-           | name of queue to lpush data to
+        - queue(str)("wishbone.out")
+           | name of queue to push data to
+        - key(str)("")
+           | if event contains non-emtpy key value, push data to that queue
+        - selection(str)("@data")
+           |  The part of the event to submit externally.
 
     Queues:
 
