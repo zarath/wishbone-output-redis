@@ -17,6 +17,7 @@ import redis.connection
 
 redis.connection.socket = gsocket
 
+
 class RedisOut(Actor):
     '''**Send data to a redis server**
 
@@ -24,17 +25,21 @@ class RedisOut(Actor):
 
     Parameters:
 
-        - redisdb(dict){
-            host(str): ("localhost"),  # Redis hostname
-            port(int): (6379),         # Redis port
-            database(int): (0),        # Index of db to use
+        - host(str)("localhost")
+           |  Redis hostname
+        - port(int)(6379)
+           | Redis port
+        - database(int)(0)
+           | Index of db to use
 
         - queue(str)("wishbone.out")
            | name of queue to push data to
         - key(str)("")
            | if event contains non-emtpy key value, push data to that queue
         - selection(str)("@data")
-           |  The part of the event to submit externally.
+           | The part of the event to submit externally.
+        - rpush(bool)(False)
+           | use rpush instead of lpush
 
     Queues:
 
@@ -42,30 +47,33 @@ class RedisOut(Actor):
            |  Incoming events
     '''
 
-    #pylint: disable=too-many-arguments
-    def __init__(self, actor_config, redisdb=None,
-                 queue="wishbone.out", key="", selection="@data"):
+    def __init__(self, actor_config,
+                 host="localhost", port=6379, database=0,
+                 queue="wishbone.out", key="", selection="@data", rpush=False):
         Actor.__init__(self, actor_config)
-        self.rdb = {
-            'host': 'localhost',
-            'port': 6379,
-            'database': 0,
-        }
-        if redisdb:
-            self.rdb.update(redis)
+        self.redis_host = host
+        self.redis_port = port
+        self.redis_db = database
         self.queue = queue
         self.key = key
         self.selection = selection
         self.conn = None
+        self.rpush = rpush
+        self.pushcmd = None
         self.pool.createQueue("inbox")
         self.registerConsumer(self.consume, "inbox")
 
     def preHook(self):
         '''Sets up redis connection'''
-        self.conn = redis.Redis(host=self.rdb['host'], port=self.rdb['port'])
-        self.conn.execute_command('SELECT', self.rdb['database'])
+        self.conn = redis.Redis(host=self.redis_host, port=self.redis_port)
+        self.conn.execute_command("SELECT " + str(self.redis_db))
 
-        self.logging.info('Connection to %s created.' % self.rdb['host'])
+        self.logging.info('Connection to %s created.' % self.redis_host)
+
+        if self.rpush:
+            self.pushcmd = self.conn.rpush
+        else:
+            self.pushcmd = self.conn.lpush
 
     def consume(self, event):
         '''Send data to redis queue'''
@@ -77,10 +85,10 @@ class RedisOut(Actor):
                     data = evt.get(self.selection)
                 except KeyError:
                     continue
-                self.conn.lpush(dst, data)
+                self.pushcmd(dst, data)
         else:
             dst = self._get_dest(event)
-            self.conn.lpush(dst, event.get(self.selection))
+            self.pushcmd(dst, event.get(self.selection))
 
     def _get_dest(self, event):
         if self.key:
