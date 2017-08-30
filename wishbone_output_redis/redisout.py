@@ -1,8 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
-redisout.py
-==========
+redisout.py.
 
 @author: "Holger Mueller" <holgerm1969@gmx.de>
 
@@ -19,19 +18,18 @@ redis.connection.socket = gsocket
 
 
 class RedisOut(Actor):
-    '''**Send data to a redis server**
+    """Send data to a redis server.
 
     Creates a connection to a redis server sends data to it.
 
-    Parameters:
-
+    Parameters
+    ----------
         - host(str)("localhost")
            |  Redis hostname
         - port(int)(6379)
            | Redis port
         - database(int)(0)
            | Index of db to use
-
         - queue(str)("wishbone.out")
            | name of queue to push data to
         - key(str)("")
@@ -41,15 +39,17 @@ class RedisOut(Actor):
         - rpush(bool)(False)
            | use rpush instead of lpush
 
-    Queues:
-
+    Queues
+    ------
         - inbox
            |  Incoming events
-    '''
+
+    """
 
     def __init__(self, actor_config,
                  host="localhost", port=6379, database=0,
                  queue="wishbone.out", key="", selection="@data", rpush=False):
+        """Output module to redis database."""
         Actor.__init__(self, actor_config)
         self.redis_host = host
         self.redis_port = port
@@ -64,10 +64,9 @@ class RedisOut(Actor):
         self.registerConsumer(self.consume, "inbox")
 
     def preHook(self):
-        '''Sets up redis connection'''
-        self.conn = redis.Redis(host=self.redis_host, port=self.redis_port)
-        self.conn.execute_command("SELECT " + str(self.redis_db))
-
+        """Set up redis connection."""
+        self.conn = redis.StrictRedis(
+            host=self.redis_host, port=self.redis_port, db=self.redis_db)
         self.logging.info('Connection to %s created.' % self.redis_host)
 
         if self.rpush:
@@ -76,8 +75,7 @@ class RedisOut(Actor):
             self.pushcmd = self.conn.lpush
 
     def consume(self, event):
-        '''Send data to redis queue'''
-
+        """Send data to redis queue."""
         if isinstance(event, Bulk):
             for evt in event.dump():
                 dst = self._get_dest(evt)

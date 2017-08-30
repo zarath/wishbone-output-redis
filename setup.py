@@ -22,12 +22,12 @@
 #
 #
 
+import sys
 from setuptools import setup, find_packages
 from setuptools.command.test import test as TestCommand
-import sys
 
 PROJECT = 'wishbone_output_redis'
-VERSION = '0.3.3'
+VERSION = '0.3.4'
 
 install_requires = [
     'wishbone>=2.1.1',
@@ -52,6 +52,7 @@ class PyTest(TestCommand):
         errcode = pytest.main(self.test_args)
         sys.exit(errcode)
 
+
 setup(
     name=PROJECT,
     version=VERSION,
@@ -64,14 +65,16 @@ setup(
 
     url='',
     download_url='',
-    classifiers=['Development Status :: 5 - Production/Stable',
-                 'License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)',
-                 'Programming Language :: Python',
-                 'Programming Language :: Python :: 2.7',
-                 'Programming Language :: Python :: Implementation :: PyPy',
-                 'Intended Audience :: Developers',
-                 'Intended Audience :: System Administrators',
-                 ],
+    classifiers=[
+        'Development Status :: 5 - Production/Stable',
+        'License :: OSI Approved ::'
+        ' GNU General Public License v3 or later (GPLv3+)',
+        'Programming Language :: Python',
+        'Programming Language :: Python :: 2.7',
+        'Programming Language :: Python :: Implementation :: PyPy',
+        'Intended Audience :: Developers',
+        'Intended Audience :: System Administrators',
+    ],
     extras_require={
         'testing': ['pytest'],
     },
