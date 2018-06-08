@@ -8,8 +8,8 @@ redisout.py.
 Wishbone output module to connect with redis servers.
 """
 
-from wishbone import Actor
-from wishbone.event import Bulk
+from wishbone.module import OutputModule
+from wishbone.event import extractBulkItems
 from gevent import socket as gsocket
 import redis
 import redis.connection
@@ -17,7 +17,7 @@ import redis.connection
 redis.connection.socket = gsocket
 
 
-class RedisOut(Actor):
+class RedisOut(OutputModule):
     """Send data to a redis server.
 
     Creates a connection to a redis server sends data to it.
@@ -46,11 +46,22 @@ class RedisOut(Actor):
 
     """
 
-    def __init__(self, actor_config,
-                 host="localhost", port=6379, database=0,
-                 queue="wishbone.out", key="", selection="@data", rpush=False):
+    def __init__(
+            self,
+            actor_config,
+            host="localhost",
+            port=6379,
+            database=0,
+            queue="wishbone.out",
+            key="",
+            native_events=False,
+            payload=None,
+            parallel_streams=1,
+            selection="@data",
+            rpush=False
+            ):
         """Output module to redis database."""
-        Actor.__init__(self, actor_config)
+        OutputModule.__init__(self, actor_config)
         self.redis_host = host
         self.redis_port = port
         self.redis_db = database
@@ -74,19 +85,33 @@ class RedisOut(Actor):
         else:
             self.pushcmd = self.conn.lpush
 
+    def _extract_event(self, event):
+        try:
+            data = event.get(self.selection)
+            destination = self._get_dest(event)
+            return (data, destination)
+        except KeyError:
+            return (False, False)
+
     def consume(self, event):
         """Send data to redis queue."""
-        if isinstance(event, Bulk):
-            for evt in event.dump():
-                dst = self._get_dest(evt)
-                try:
-                    data = evt.get(self.selection)
-                except KeyError:
-                    continue
-                self.pushcmd(dst, data)
-        else:
-            dst = self._get_dest(event)
-            self.pushcmd(dst, event.get(self.selection))
+        try:
+            if event.isBulk():
+                for evt in extractBulkItems(event):
+                    data, dst = self._extract_event(evt)
+                    if not data:
+                        continue
+                    self.pushcmd(dst, data)
+            else:
+                data, dst = self._extract_event(event)
+                if not data:
+                    return
+                self.pushcmd(dst, event.get(self.selection))
+                self.logging.warn("Added data to redis: {}".format(data))
+        except Exception as error:
+                self.logging.crit(
+                    "Falied to set key in Redis. Reason: {}".format(error)
+                    )
 
     def _get_dest(self, event):
         if self.key:

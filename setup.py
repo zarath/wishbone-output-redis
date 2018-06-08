@@ -28,10 +28,11 @@ from setuptools.command.test import test as TestCommand
 
 PROJECT = 'wishbone_output_redis'
 VERSION = '0.3.4'
-
-install_requires = [
-    'wishbone>=2.1.1',
+INSTALL_REQUIRES = [
+    'wishbone>=3',
+    'redis'
 ]
+EXTRA_HIREDIS = INSTALL_REQUIRES + ['hiredis']
 
 try:
     with open('README.md', 'rt') as f:
@@ -77,13 +78,14 @@ setup(
     ],
     extras_require={
         'testing': ['pytest'],
+        'hiredis': EXTRA_HIREDIS
     },
     platforms=['Linux'],
     test_suite='tests.test_wishbone',
     cmdclass={'test': PyTest},
     scripts=[],
     provides=[],
-    install_requires=install_requires,
+    install_requires=INSTALL_REQUIRES,
     namespace_packages=[],
     packages=find_packages(),
     zip_safe=False,
