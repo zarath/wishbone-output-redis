@@ -88,7 +88,7 @@ setup(
     packages=find_packages(),
     zip_safe=False,
     entry_points={
-        'wishbone.output': [
+        'wishbone.module.output': [
             'redis=wishbone_output_redis:RedisOut',
         ]
     }
